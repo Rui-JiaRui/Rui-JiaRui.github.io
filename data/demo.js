@@ -1,0 +1,32 @@
+// Fallback data for direct file:// previews. Static deployments still use data/*.json.
+window.__LAW_DEMO__ = {
+  registry: {
+    schemaVersion: '1.0',
+    accounts: [{ username: 'student01', passwordHash: 'sha-256:ededc647b824693a6a632e7ceb8bbdc4feea781ba5d68bd52e382b202d714c3d', paperIds: ['fa-2026-01', 'fa-2026-02'], enabled: true }]
+  },
+  papers: {
+    'fa-2026-01': {
+      schemaVersion: '1.0',
+      paper: { id: 'fa-2026-01', title: '法考客观题模拟卷一', description: '民法与刑法基础综合练习，适合阶段性自测。', durationMinutes: 30, totalScore: 5, showResultAfterSubmit: true },
+      questions: [
+        { id: 'Q001', type: 'single', score: 1, stem: '甲将自己的手机借给乙使用。下列关于该借用关系的说法，正确的是：', options: [{ key: 'A', text: '乙取得手机的所有权' }, { key: 'B', text: '甲仍享有手机的所有权' }, { key: 'C', text: '乙可以不经同意转借给第三人' }, { key: 'D', text: '借用关系必然有偿' }], tags: ['民法', '物权'] },
+        { id: 'Q002', type: 'multiple', score: 1, stem: '下列哪些情形属于民事法律行为的意思表示？', options: [{ key: 'A', text: '签订买卖合同' }, { key: 'B', text: '订立遗嘱' }, { key: 'C', text: '在心中形成购买计划' }, { key: 'D', text: '作出赠与承诺' }], tags: ['民法', '总则'] },
+        { id: 'Q003', type: 'single', score: 1, stem: '关于正当防卫，下列表述正确的是：', options: [{ key: 'A', text: '必须在不法侵害结束后实施' }, { key: 'B', text: '针对正在进行的不法侵害实施' }, { key: 'C', text: '只能由受害人本人实施' }, { key: 'D', text: '造成任何损害都不负责任' }], tags: ['刑法', '违法阻却事由'] },
+        { id: 'Q004', type: 'indefinite', score: 1, stem: '下列关于诉讼时效的说法，正确的是：', options: [{ key: 'A', text: '诉讼时效期间届满，权利本身消灭' }, { key: 'B', text: '当事人可以约定延长诉讼时效' }, { key: 'C', text: '权利人提起诉讼可导致时效中断' }, { key: 'D', text: '诉讼时效届满后，义务人自愿履行的不得反悔' }], tags: ['民法', '诉讼时效'] },
+        { id: 'Q005', type: 'single', score: 1, stem: '刑法规定的犯罪构成要件不包括：', options: [{ key: 'A', text: '犯罪客体' }, { key: 'B', text: '犯罪客观方面' }, { key: 'C', text: '犯罪主体' }, { key: 'D', text: '犯罪收益' }], tags: ['刑法', '犯罪构成'] }
+      ]
+    },
+    'fa-2026-02': {
+      schemaVersion: '1.0',
+      paper: { id: 'fa-2026-02', title: '法考客观题模拟卷二', description: '行政法与民事诉讼法练习，本卷暂未配置标准答案。', durationMinutes: 20, totalScore: 3, showResultAfterSubmit: true },
+      questions: [
+        { id: 'Q101', type: 'single', score: 1, stem: '行政机关作出行政处罚决定前，应当依法告知当事人：', options: [{ key: 'A', text: '处罚的事实、理由和依据' }, { key: 'B', text: '承办人员家庭住址' }, { key: 'C', text: '其他案件的处理结果' }, { key: 'D', text: '行政机关年度预算' }], tags: ['行政法', '行政处罚'] },
+        { id: 'Q102', type: 'multiple', score: 1, stem: '民事诉讼中，当事人可以申请回避的人员包括：', options: [{ key: 'A', text: '审判人员' }, { key: 'B', text: '书记员' }, { key: 'C', text: '翻译人员' }, { key: 'D', text: '旁听群众' }], tags: ['民诉法', '程序'] },
+        { id: 'Q103', type: 'single', score: 1, stem: '人民法院审理民事案件，原则上应当公开进行，但法律另有规定的除外。', options: [{ key: 'A', text: '正确' }, { key: 'B', text: '错误' }], tags: ['民诉法', '审理'] }
+      ]
+    }
+  },
+  answerKeys: {
+    'fa-2026-01': { paperId: 'fa-2026-01', version: '2026.01', answers: { Q001: { answer: ['B'], analysis: '借用不发生所有权转移，出借人仍然是手机的所有权人。' }, Q002: { answer: ['A', 'B', 'D'], analysis: '意思表示是向外部表达设立、变更或终止民事法律关系的意愿。' }, Q003: { answer: ['B'], analysis: '正当防卫要求不法侵害正在进行，防卫行为须针对侵害人。' }, Q004: { answer: ['C', 'D'], analysis: '起诉属于权利人主张权利，能够引起诉讼时效中断；自愿履行后一般不得以时效届满抗辩。' }, Q005: { answer: ['D'], analysis: '犯罪构成通常包括犯罪客体、客观方面、主体和主观方面。' } } }
+  }
+};

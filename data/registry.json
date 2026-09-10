@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "1.0",
+  "accounts": [
+    {
+      "username": "student01",
+      "passwordHash": "sha-256:ededc647b824693a6a632e7ceb8bbdc4feea781ba5d68bd52e382b202d714c3d",
+      "paperIds": ["fa-2026-01", "fa-2026-02"],
+      "enabled": true
+    }
+  ]
+}
