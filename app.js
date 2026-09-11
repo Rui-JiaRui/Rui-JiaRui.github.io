@@ -7,7 +7,8 @@ const state = {
   session: JSON.parse(sessionStorage.getItem('law-session') || 'null'),
   attempt: null,
   timer: null,
-  resultFilter: 'all'
+  resultFilter: 'all',
+  startingPaperIds: new Set()
 };
 
 const dbStore = {
@@ -94,6 +95,41 @@ async function findAttempts(paperId) {
   return all.filter((item) => item.paperId === paperId && item.username === state.session?.username).sort((a, b) => b.startedAt - a.startedAt);
 }
 
+function createAttempt(paperId, paper, username, now = Date.now()) {
+  const durationMinutes = Number(paper.paper?.durationMinutes || 0);
+  return {
+    id: uid(),
+    username,
+    paperId,
+    paperVersion: paper.schemaVersion || '1.0',
+    startedAt: now,
+    expiresAt: now + durationMinutes * 60 * 1000,
+    currentIndex: 0,
+    answers: {},
+    marked: [],
+    status: 'in_progress'
+  };
+}
+
+function attemptStatusLabel(attempt) {
+  return ({
+    in_progress: ['is-progress', '进行中'],
+    graded: ['is-graded', '已批改'],
+    submitted_ungraded: ['is-pending', '待批改'],
+    abandoned: ['is-abandoned', '已放弃']
+  }[attempt.status] || ['is-pending', attempt.status || '未知']);
+}
+
+function renderAttemptHistory(attempts, currentId) {
+  if (!attempts.length) return '';
+  const rows = attempts.map((item, index) => {
+    const [statusClass, statusText] = attemptStatusLabel(item);
+    const score = item.status === 'graded' && item.grading ? `${item.grading.score} / ${item.grading.total}` : statusText;
+    return `<a class="history-row ${item.id === currentId ? 'is-current' : ''}" href="#/result/${encodeURIComponent(item.id)}"><span>第 ${attempts.length - index} 次 · ${formatDate(item.startedAt)}</span><span class="history-score">${escapeHTML(score)} <i class="status ${statusClass}">${statusText}</i></span></a>`;
+  }).join('');
+  return `<section class="attempt-history"><div class="section-subhead"><h2>历史记录</h2><span>${attempts.length} 次</span></div><div class="history-list">${rows}</div></section>`;
+}
+
 async function persist() {
   if (state.attempt) await dbStore.put(state.attempt);
 }
@@ -139,16 +175,31 @@ async function handleLogin(event) {
 
 async function renderSelect() {
   stopTimer();
-  const paperEntries = await Promise.all(state.session.paperIds.map(async (id) => [id, await loadPaper(id)]));
-  app.innerHTML = `${topbar(state.session.username)}<main class="page"><a class="back-link" href="#/login">← 退出当前账号</a><div class="section-head"><div><div class="eyebrow">选择试卷</div><h1>开始一场练习</h1><p class="lead">选择一套试卷进入答题。未完成的答卷会在本机自动保存。</p></div></div><div class="paper-grid">${paperEntries.map(([id, data], index) => paperCard(id, data, index)).join('')}</div></main>`;
-  document.querySelectorAll('[data-paper]').forEach((button) => button.addEventListener('click', () => startExam(button.dataset.paper)));
+  const paperEntries = await Promise.all(state.session.paperIds.map(async (id) => [id, await loadPaper(id), await findAttempts(id)]));
+  app.innerHTML = `${topbar(state.session.username)}<main class="page"><a class="back-link" href="#/login">← 退出当前账号</a><div class="section-head"><div><div class="eyebrow">选择试卷</div><h1>开始一场练习</h1><p class="lead">选择一套试卷进入答题。未完成的答卷会在本机自动保存。</p></div></div><div class="paper-grid">${paperEntries.map(([id, data, attempts], index) => paperCard(id, data, index, attempts)).join('')}</div></main>`;
+  document.querySelectorAll('[data-action]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const paperId = button.dataset.paper;
+      if (button.dataset.action === 'continue' || button.dataset.action === 'start') startExam(paperId);
+      if (button.dataset.action === 'recent') navigate(`result/${button.dataset.attempt}`);
+      if (button.dataset.action === 'retake') startNewAttempt(paperId);
+    });
+  });
 }
 
-function paperCard(id, data, index) {
+function paperCard(id, data, index, attempts = []) {
   const paper = data.paper;
   const summary = summarizePaper(data);
   const answerStatus = paper.hasAnswerKey ? ['is-ready', '已配置答案'] : ['is-pending', '待配置答案'];
-  return `<button class="paper-card" data-paper="${escapeHTML(id)}"><span class="paper-index">${String(index + 1).padStart(2, '0')}</span><h3>${escapeHTML(paper.title)}</h3><span class="paper-id">${escapeHTML(paper.id || id)}</span><p>${escapeHTML(paper.description)}</p><div class="paper-meta"><span class="tag">${data.questions.length} 题</span><span class="tag">${paper.durationMinutes} 分钟</span><span class="tag">${paper.totalScore} 分</span></div><div class="paper-stats"><span>单选 ${summary.single}</span><span>多选 ${summary.multiple}</span><span>不定项 ${summary.indefinite}</span><span class="answer-status ${answerStatus[0]}">${answerStatus[1]}</span></div></button>`;
+  const open = attempts.find((item) => item.status === 'in_progress');
+  const submitted = attempts.find((item) => item.status !== 'in_progress' && item.status !== 'abandoned');
+  const actions = [];
+  if (open) actions.push(`<button class="button button-secondary button-sm" data-action="continue" data-paper="${escapeHTML(id)}">继续考试</button>`);
+  if (submitted) actions.push(`<button class="button button-ghost button-sm" data-action="recent" data-paper="${escapeHTML(id)}" data-attempt="${escapeHTML(submitted.id)}">查看最近结果</button>`);
+  if (open || submitted) actions.push(`<button class="button button-primary button-sm" data-action="retake" data-paper="${escapeHTML(id)}">重新考试</button>`);
+  if (!actions.length) actions.push(`<button class="button button-primary button-sm" data-action="start" data-paper="${escapeHTML(id)}">开始考试</button>`);
+  const history = attempts.length ? `<div class="paper-history">已完成 ${attempts.filter((item) => item.status !== 'in_progress' && item.status !== 'abandoned').length} 次</div>` : '';
+  return `<article class="paper-card"><span class="paper-index">${String(index + 1).padStart(2, '0')}</span><h3>${escapeHTML(paper.title)}</h3><span class="paper-id">${escapeHTML(paper.id || id)}</span><p>${escapeHTML(paper.description)}</p><div class="paper-meta"><span class="tag">${data.questions.length} 题</span><span class="tag">${paper.durationMinutes} 分钟</span><span class="tag">${paper.totalScore} 分</span></div><div class="paper-stats"><span>单选 ${summary.single}</span><span>多选 ${summary.multiple}</span><span>不定项 ${summary.indefinite}</span><span class="answer-status ${answerStatus[0]}">${answerStatus[1]}</span></div>${history}<div class="paper-actions">${actions.join('')}</div></article>`;
 }
 
 function summarizePaper(data = {}) {
@@ -170,12 +221,31 @@ async function startExam(paperId) {
     if (!window.confirm(`发现 ${formatDate(open.startedAt)} 开始的未完成答卷，继续作答吗？`)) return;
     state.attempt = open;
   } else {
-    const submitted = attempts.find((item) => item.status !== 'in_progress');
-    if (submitted) { navigate(`result/${submitted.id}`); return; }
-    state.attempt = { id: uid(), username: state.session.username, paperId, paperVersion: paper.schemaVersion || '1.0', startedAt: Date.now(), expiresAt: Date.now() + paper.paper.durationMinutes * 60 * 1000, currentIndex: 0, answers: {}, marked: [], status: 'in_progress' };
-    await persist();
+    return startNewAttempt(paperId, paper, attempts);
   }
   navigate(`exam/${paperId}`);
+}
+
+async function startNewAttempt(paperId, loadedPaper = null, loadedAttempts = null) {
+  if (state.startingPaperIds.has(paperId)) return;
+  state.startingPaperIds.add(paperId);
+  try {
+    const paper = loadedPaper || await loadPaper(paperId);
+    const attempts = loadedAttempts || await findAttempts(paperId);
+    const open = attempts.find((item) => item.status === 'in_progress');
+    if (open) {
+      if (open.expiresAt <= Date.now()) { state.attempt = open; await submitAttempt(true); return; }
+      if (!window.confirm('当前试卷已有进行中的答卷。放弃当前答卷并重新开始吗？')) return;
+      open.status = 'abandoned';
+      open.abandonedAt = Date.now();
+      await dbStore.put(open);
+    }
+    state.attempt = createAttempt(paperId, paper, state.session.username);
+    await persist();
+    navigate(`exam/${paperId}`);
+  } finally {
+    state.startingPaperIds.delete(paperId);
+  }
 }
 
 function stopTimer() { if (state.timer) window.clearInterval(state.timer); state.timer = null; }
@@ -295,6 +365,7 @@ async function renderResult(attemptId) {
   if (!attempt || attempt.username !== state.session.username || !state.session.paperIds.includes(attempt.paperId)) { navigate('select'); return; }
   state.attempt = attempt;
   const paper = await loadPaper(attempt.paperId);
+  const attempts = await findAttempts(attempt.paperId);
   const graded = attempt.status === 'graded' && attempt.grading;
   const score = graded ? attempt.grading.score : null;
   const details = attempt.grading?.details || {};
@@ -308,10 +379,11 @@ async function renderResult(attemptId) {
     if (state.resultFilter === 'marked') return attempt.marked.includes(question.id);
     return true;
   });
-  app.innerHTML = `${topbar(attempt.username)}<main class="page"><div class="result-hero"><div><div class="eyebrow">${graded ? '已完成批改' : '已提交 · 待批改'}</div><h1>${escapeHTML(paper.paper.title)}</h1><p style="margin-top:10px;color:#b9cad8;font-size:13px">提交时间 ${formatDate(attempt.submittedAt)}</p></div>${graded ? `<div class="result-score"><strong>${score}</strong><span>总分 ${paper.paper.totalScore}</span></div>` : ''}</div>${graded ? `<div class="stats-grid"><div class="stat"><span>得分率</span><strong>${Math.round((score / paper.paper.totalScore) * 100)}%</strong></div><div class="stat"><span>答对</span><strong>${correctCount}</strong></div><div class="stat"><span>答错</span><strong>${paper.questions.filter((q) => details[q.id]?.selected?.length && !details[q.id].isCorrect).length}</strong></div><div class="stat"><span>未答</span><strong>${paper.questions.length - answeredCount}</strong></div></div>` : `<div class="pending-card" style="margin-top:16px">本试卷尚未配置标准答案，暂不计算成绩。提交记录已保存在当前浏览器中。</div>`}<div class="result-toolbar"><div class="filter-group">${filters.map((filter) => `<button class="filter ${state.resultFilter === filter.key ? 'is-active' : ''}" data-filter="${filter.key}">${filter.label}</button>`).join('')}</div><div class="result-actions" style="margin-top:0"><button class="button button-ghost button-sm" id="export">导出 JSON</button><button class="button button-secondary button-sm" id="export-html">导出 HTML</button><button class="button button-secondary button-sm" id="back-select">返回试卷</button></div></div><div class="result-list">${visibleQuestions.length ? visibleQuestions.map((question, index) => resultQuestion(question, attempt, graded, details[question.id], index)).join('') : '<div class="empty-state">当前筛选下没有题目</div>'}</div></main>`;
+  app.innerHTML = `${topbar(attempt.username)}<main class="page"><div class="result-hero"><div><div class="eyebrow">${graded ? '已完成批改' : '已提交 · 待批改'}</div><h1>${escapeHTML(paper.paper.title)}</h1><p style="margin-top:10px;color:#b9cad8;font-size:13px">提交时间 ${formatDate(attempt.submittedAt)}</p></div>${graded ? `<div class="result-score"><strong>${score}</strong><span>总分 ${paper.paper.totalScore}</span></div>` : ''}</div>${graded ? `<div class="stats-grid"><div class="stat"><span>得分率</span><strong>${Math.round((score / paper.paper.totalScore) * 100)}%</strong></div><div class="stat"><span>答对</span><strong>${correctCount}</strong></div><div class="stat"><span>答错</span><strong>${paper.questions.filter((q) => details[q.id]?.selected?.length && !details[q.id].isCorrect).length}</strong></div><div class="stat"><span>未答</span><strong>${paper.questions.length - answeredCount}</strong></div></div>` : `<div class="pending-card" style="margin-top:16px">本试卷尚未配置标准答案，暂不计算成绩。提交记录已保存在当前浏览器中。</div>`}<div class="result-toolbar"><div class="filter-group">${filters.map((filter) => `<button class="filter ${state.resultFilter === filter.key ? 'is-active' : ''}" data-filter="${filter.key}">${filter.label}</button>`).join('')}</div><div class="result-actions" style="margin-top:0"><button class="button button-primary button-sm" id="retake">重新考试</button><button class="button button-ghost button-sm" id="export">导出 JSON</button><button class="button button-secondary button-sm" id="export-html">导出 HTML</button><button class="button button-secondary button-sm" id="back-select">返回试卷</button></div></div><div class="result-list">${visibleQuestions.length ? visibleQuestions.map((question) => resultQuestion(question, attempt, graded, details[question.id], paper.questions.indexOf(question))).join('') : '<div class="empty-state">当前筛选下没有题目</div>'}</div>${renderAttemptHistory(attempts, attempt.id)}</main>`;
   document.querySelectorAll('[data-filter]').forEach((button) => button.addEventListener('click', () => { state.resultFilter = button.dataset.filter; renderResult(attemptId); }));
   document.querySelector('#export').addEventListener('click', () => exportAttempt(attempt, paper));
   document.querySelector('#export-html').addEventListener('click', () => exportAttemptHTML(attempt, paper));
+  document.querySelector('#retake').addEventListener('click', () => startNewAttempt(attempt.paperId, paper, attempts));
   document.querySelector('#back-select').addEventListener('click', () => navigate('select'));
 }
 

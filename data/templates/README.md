@@ -40,4 +40,18 @@ node -e "JSON.parse(require('fs').readFileSync('data/exams/manual-2026-01/paper.
 node -e "JSON.parse(require('fs').readFileSync('data/exams/manual-2026-01/answer-key.json'))"
 ```
 
-部署到静态服务器后直接访问页面即可。若需要直接双击 `index.html` 进行 `file://` 预览，还必须将新试卷的公开内容同步加入 `data/demo.js`；服务器部署不需要这一步。
+部署到静态服务器后直接访问页面即可。若需要直接双击 `index.html` 进行 `file://` 预览，请在新增或修改题库后运行：
+
+```bash
+node scripts/generate-demo.js
+```
+
+该脚本从 `data/registry.json` 和 `data/exams/` 自动生成 `data/demo.js`，因此不需要手工在两个文件中重复录入题目。`data/demo.js` 是生成文件，不要直接编辑。
+
+题干、选项和解析中的换行使用 JSON 字符串转义 `\n` 表示，例如 `"第一行\\n第二行"`；页面和导出 HTML 会保留这些换行，并在超长单词或链接处自动折行。
+
+## 答卷与重新考试
+
+答卷进度和成绩只保存在当前浏览器的 IndexedDB（不支持时回退到 localStorage）。同一账号同一试卷最多保留一个 `in_progress` 答卷；选择“重新考试”时，已完成答卷会原样保留，并创建新的答卷 ID、计时、答案和标记。若已有进行中的答卷，系统会先询问是否放弃，放弃后该记录标记为 `abandoned`，原有答案仍可在历史记录中查看。
+
+结果页和试卷选择页会显示历史答卷，可重新打开某次结果；“重新考试”不会覆盖或删除旧成绩。

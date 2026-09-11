@@ -3,7 +3,7 @@
   "paper": {
     "id": "20260801",
     "title": "20260801错题回顾",
-    "description": "20260801错题回顾",
+    "description": "刑法",
     "durationMinutes": 2,
     "totalScore": 2,
     "showResultAfterSubmit": true,
@@ -14,7 +14,7 @@
       "id": "M001",
       "type": "multiple",
       "score": 2,
-      "stem": "刑法134，关于立功，下列说法正确的有？（多选）",
+      "stem": "【刑法134】关于立功，下列说法正确的有？（多选）",
       "options": [
         {
           "key": "A",
