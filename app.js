@@ -199,7 +199,7 @@ async function renderSelect() {
   const tabs = categoryMeta.map(([key, title]) => `<button class="select-tab ${state.selectCategory === key ? 'is-active' : ''}" data-select-category="${key}" aria-selected="${state.selectCategory === key}">${title}<span>${groups[key].length}</span></button>`).join('');
   const selected = categoryMeta.find(([key]) => key === state.selectCategory);
   const section = renderPaperSection(...selected, groups[state.selectCategory]);
-  const latestStats = latestSubmissionStats(paperEntries);
+  const latestStats = aggregatePracticeStats(paperEntries);
   app.innerHTML = `${topbar(state.session.username)}<main class="page"><a class="back-link" href="#/login">← 退出当前账号</a><div class="select-header"><div><div class="eyebrow select-title">练习中心</div></div><div class="select-stats"><div><span>已作答题目</span><strong>${latestStats.answered}/${latestStats.total}</strong></div><div><span>作答正确率</span><strong>${latestStats.accuracy}</strong></div><div><span>作答正确分数</span><strong>${latestStats.correctScore}/${latestStats.answeredScore}</strong></div></div></div><div class="select-tabs" role="tablist">${tabs}</div><div class="paper-sections">${section}</div></main>`;
   document.querySelectorAll('[data-action]').forEach((button) => {
     button.addEventListener('click', () => {
@@ -231,21 +231,28 @@ function paperCategory(attempts = []) {
   return 'not_started';
 }
 
-function latestSubmissionStats(paperEntries = []) {
-  const submissions = paperEntries.flatMap(([id, data, attempts]) => attempts
-    .filter((attempt) => attempt.status !== 'in_progress' && attempt.status !== 'abandoned')
-    .map((attempt) => ({ attempt, data, id })))
-    .sort((a, b) => (b.attempt.submittedAt || b.attempt.startedAt || 0) - (a.attempt.submittedAt || a.attempt.startedAt || 0));
-  const latest = submissions[0]?.attempt;
-  if (!latest) return { answered: 0, total: 0, accuracy: '--', correctScore: 0, answeredScore: 0, graded: false };
-  const paperData = submissions[0].data;
-  const answered = Object.values(latest.answers || {}).filter((answer) => answer?.length).length;
-  const details = latest.grading?.details || {};
-  const correct = Object.values(details).filter((item) => item.isCorrect).length;
-  const answeredIds = new Set(Object.entries(latest.answers || {}).filter(([, answer]) => answer?.length).map(([id]) => id));
-  const answeredScore = (paperData.questions || []).reduce((sum, question) => sum + (answeredIds.has(question.id) ? Number(question.score || 0) : 0), 0);
-  const correctScore = (paperData.questions || []).reduce((sum, question) => sum + (details[question.id]?.isCorrect ? Number(question.score || 0) : 0), 0);
-  return { answered, total: (paperData.questions || []).length, accuracy: latest.status === 'graded' && answered ? `${Math.round((correct / answered) * 100)}%` : '--', correctScore, answeredScore, graded: latest.status === 'graded' };
+function aggregatePracticeStats(paperEntries = []) {
+  const stats = { answered: 0, total: 0, correct: 0, gradedAnswered: 0, correctScore: 0, answeredScore: 0 };
+  paperEntries.forEach(([, data, attempts = []]) => {
+    const questions = data.questions || [];
+    stats.total += questions.length;
+    const latest = attempts.find((attempt) => attempt.status !== 'abandoned');
+    if (!latest) return;
+    const answers = latest.answers || {};
+    const answeredIds = new Set(Object.entries(answers).filter(([, answer]) => answer?.length).map(([id]) => id));
+    stats.answered += answeredIds.size;
+    stats.answeredScore += questions.reduce((sum, question) => sum + (answeredIds.has(question.id) ? Number(question.score || 0) : 0), 0);
+    const details = latest.grading?.details || {};
+    if (latest.status === 'graded') {
+      stats.correct += Object.values(details).filter((item) => item.isCorrect).length;
+      stats.gradedAnswered += Object.values(details).filter((item) => item.selected?.length).length;
+      stats.correctScore += questions.reduce((sum, question) => sum + (details[question.id]?.isCorrect ? Number(question.score || 0) : 0), 0);
+    }
+  });
+  return {
+    ...stats,
+    accuracy: stats.gradedAnswered ? `${Math.round((stats.correct / stats.gradedAnswered) * 100)}%` : '--'
+  };
 }
 
 function paginateItems(items, page = 0, pageSize = 6) {
@@ -285,7 +292,7 @@ function summarizePaper(data = {}) {
 }
 
 // Keep pure rendering helpers available to lightweight browser/Node checks.
-globalThis.__LAW_TEST_HOOKS__ = { summarizePaper, paperCard, paperCategory, paginateItems, latestSubmissionStats };
+globalThis.__LAW_TEST_HOOKS__ = { summarizePaper, paperCard, paperCategory, paginateItems, aggregatePracticeStats };
 
 async function startExam(paperId) {
   const paper = await loadPaper(paperId);

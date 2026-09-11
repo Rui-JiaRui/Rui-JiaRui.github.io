@@ -159,16 +159,16 @@ test('select page renders one active status tab at a time', () => {
   assert.match(styles, /\.select-tab\.is-active\s*\{/);
 });
 
-test('select page exposes latest submission statistics and uses 法记 branding', () => {
+test('select page aggregates statistics across all papers and uses 法记 branding', () => {
   const source = fs.readFileSync(path.join(root, 'app.js'), 'utf8');
-  const match = source.match(/function latestSubmissionStats\(paperEntries = \[\]\) \{[\s\S]*?\n\}/);
-  assert.ok(match, 'latestSubmissionStats helper should be defined');
-  const latestSubmissionStats = vm.runInNewContext(`(${match[0]})`);
-  const stats = latestSubmissionStats([
-    ['paper-a', { questions: [{ id: 'a', score: 1 }, { id: 'b', score: 2 }] }, [{ status: 'graded', submittedAt: 100, answers: { a: ['A'], b: [] }, grading: { details: { a: { isCorrect: true } } } }]],
-    ['paper-b', { questions: [{ id: 'c', score: 2 }, { id: 'd', score: 2 }, { id: 'e', score: 1 }] }, [{ status: 'graded', submittedAt: 200, answers: { c: ['B'], d: ['A'] }, grading: { details: { c: { isCorrect: false }, d: { isCorrect: true } } } }]]
+  const match = source.match(/function aggregatePracticeStats\(paperEntries = \[\]\) \{[\s\S]*?\n\}/);
+  assert.ok(match, 'aggregatePracticeStats helper should be defined');
+  const aggregatePracticeStats = vm.runInNewContext(`(${match[0]})`);
+  const stats = aggregatePracticeStats([
+    ['paper-a', { questions: [{ id: 'a', score: 1 }, { id: 'b', score: 2 }] }, [{ status: 'graded', submittedAt: 100, answers: { a: ['A'], b: [] }, grading: { details: { a: { selected: ['A'], isCorrect: true } } } }]],
+    ['paper-b', { questions: [{ id: 'c', score: 2 }, { id: 'd', score: 2 }, { id: 'e', score: 1 }] }, [{ status: 'graded', submittedAt: 200, answers: { c: ['B'], d: ['A'] }, grading: { details: { c: { selected: ['B'], isCorrect: false }, d: { selected: ['A'], isCorrect: true } } } }]]
   ]);
-  assert.deepEqual(JSON.parse(JSON.stringify(stats)), { answered: 2, total: 3, accuracy: '50%', correctScore: 2, answeredScore: 4, graded: true });
+  assert.deepEqual(JSON.parse(JSON.stringify(stats)), { answered: 3, total: 5, correct: 2, gradedAnswered: 3, accuracy: '67%', correctScore: 3, answeredScore: 5 });
   assert.match(source, /<strong>法记<\/strong>/);
   assert.match(source, /已作答题目/);
   assert.match(source, /作答正确率/);
