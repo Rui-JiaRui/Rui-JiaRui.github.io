@@ -115,6 +115,41 @@ test('paper cards expose continue, recent-result and retake actions from history
   assert.match(html, /重新考试/);
 });
 
+test('select page groups papers by attempt status', () => {
+  const source = fs.readFileSync(path.join(root, 'app.js'), 'utf8');
+  const categoryMatch = source.match(/function paperCategory\(attempts = \[\]\) \{[\s\S]*?\n\}/);
+  assert.ok(categoryMatch, 'paperCategory helper should be defined');
+  const paperCategory = vm.runInNewContext(`(${categoryMatch[0]})`);
+  assert.equal(paperCategory([]), 'not_started');
+  assert.equal(paperCategory([{ status: 'abandoned' }]), 'not_started');
+  assert.equal(paperCategory([{ status: 'in_progress' }]), 'in_progress');
+  assert.equal(paperCategory([{ status: 'graded' }]), 'completed');
+  assert.equal(paperCategory([{ status: 'submitted_ungraded' }]), 'completed');
+  assert.equal(paperCategory([{ status: 'in_progress' }, { status: 'graded' }]), 'in_progress');
+});
+
+test('select sections paginate independently with six papers per page', () => {
+  const source = fs.readFileSync(path.join(root, 'app.js'), 'utf8');
+  const paginationMatch = source.match(/function paginateItems\(items, page = 0, pageSize = 6\) \{[\s\S]*?\n\}/);
+  assert.ok(paginationMatch, 'paginateItems helper should be defined');
+  const paginateItems = vm.runInNewContext(`(${paginationMatch[0]})`);
+  const items = Array.from({ length: 13 }, (_, index) => index);
+  assert.deepEqual(JSON.parse(JSON.stringify(paginateItems(items))), { page: 0, pageCount: 3, items: [0, 1, 2, 3, 4, 5] });
+  assert.deepEqual(JSON.parse(JSON.stringify(paginateItems(items, 2))), { page: 2, pageCount: 3, items: [12] });
+  assert.equal(paginateItems(items, 99).page, 2);
+  assert.equal(paginateItems(items, -1).page, 0);
+});
+
+test('select page uses status sections and light paper action buttons', () => {
+  const appSource = fs.readFileSync(path.join(root, 'app.js'), 'utf8');
+  const styles = fs.readFileSync(path.join(root, 'styles.css'), 'utf8');
+  assert.match(appSource, /未完成/);
+  assert.match(appSource, /正在进行/);
+  assert.match(appSource, /已完成/);
+  assert.match(styles, /\.paper-action-primary\s*\{[^}]*background:\s*#d9efeb/);
+  assert.match(styles, /\.paper-pagination\s*\{/);
+});
+
 test('result action buttons wrap as whole buttons without stacking their text', () => {
   const styles = fs.readFileSync(path.join(root, 'styles.css'), 'utf8');
   assert.match(styles, /\.result-actions\s*\{[^}]*flex-wrap:\s*wrap/);

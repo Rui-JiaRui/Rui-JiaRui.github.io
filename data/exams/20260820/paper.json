@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "1.0",
+  "paper": {
+    "id": "20260820",
+    "title": "20260820错题回顾",
+    "description": "民商法",
+    "durationMinutes": 2,
+    "totalScore": 2,
+    "showResultAfterSubmit": true,
+    "hasAnswerKey": true
+  },
+  "questions": [
+    {
+      "id": "I001",
+      "type": "indefinite",
+      "score": 2,
+      "stem": "【民商法231】【客观题刷题训练营231】李某、王某、赵某三人系好友。李某向王某借款5万元。某日，王某偶遇赵某，谈及李某。王某对赵某表示“李某生活困难，父母又生病，这钱他不用还了”。下列选项正确的是？（不定项）",
+      "options": [
+        {
+          "key": "A",
+          "text": "王某的意思表示向赵某作出时生效"
+        },
+        {
+          "key": "B",
+          "text": "王某免除债务的意思表示须李某受领"
+        },
+        {
+          "key": "C",
+          "text": "李某无须向王某偿还债务"
+        },
+        {
+          "key": "D",
+          "text": "王某的意思表示不产生债务免除的效果"
+        }
+      ],
+      "tags": [
+        "民商法"
+      ]
+    }
+  ]
+}

@@ -8,7 +8,8 @@ const state = {
   attempt: null,
   timer: null,
   resultFilter: 'all',
-  startingPaperIds: new Set()
+  startingPaperIds: new Set(),
+  selectPages: {}
 };
 
 const dbStore = {
@@ -186,7 +187,14 @@ async function handleLogin(event) {
 async function renderSelect() {
   stopTimer();
   const paperEntries = await Promise.all(state.session.paperIds.map(async (id) => [id, await loadPaper(id), await findAttempts(id)]));
-  app.innerHTML = `${topbar(state.session.username)}<main class="page"><a class="back-link" href="#/login">← 退出当前账号</a><div class="section-head"><div><div class="eyebrow">选择试卷</div><h1>开始一场练习</h1><p class="lead">选择一套试卷进入答题。未完成的答卷会在本机自动保存。</p></div></div><div class="paper-grid">${paperEntries.map(([id, data, attempts], index) => paperCard(id, data, index, attempts)).join('')}</div></main>`;
+  const groups = { not_started: [], in_progress: [], completed: [] };
+  paperEntries.forEach((entry) => groups[paperCategory(entry[2])].push(entry));
+  const sections = [
+    ['not_started', '未完成', '尚未开始的试卷'],
+    ['in_progress', '正在进行', '有答卷正在进行中'],
+    ['completed', '已完成', '已有提交记录的试卷']
+  ].map(([key, title, description]) => renderPaperSection(key, title, description, groups[key])).join('');
+  app.innerHTML = `${topbar(state.session.username)}<main class="page"><a class="back-link" href="#/login">← 退出当前账号</a><div class="section-head"><div><div class="eyebrow">选择试卷</div><h1>开始一场练习</h1><p class="lead">按答卷状态选择试卷，未完成的答卷会在本机自动保存。</p></div></div><div class="paper-sections">${sections}</div></main>`;
   document.querySelectorAll('[data-action]').forEach((button) => {
     button.addEventListener('click', () => {
       const paperId = button.dataset.paper;
@@ -195,6 +203,33 @@ async function renderSelect() {
       if (button.dataset.action === 'retake') startNewAttempt(paperId);
     });
   });
+  document.querySelectorAll('[data-select-page]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const key = button.dataset.selectCategory;
+      state.selectPages[key] = Number(button.dataset.selectPage);
+      renderSelect();
+    });
+  });
+}
+
+function paperCategory(attempts = []) {
+  if (attempts.some((item) => item.status === 'in_progress')) return 'in_progress';
+  if (attempts.some((item) => item.status !== 'abandoned')) return 'completed';
+  return 'not_started';
+}
+
+function paginateItems(items, page = 0, pageSize = 6) {
+  const pageCount = Math.max(1, Math.ceil(items.length / pageSize));
+  const currentPage = Math.max(0, Math.min(pageCount - 1, Number(page) || 0));
+  return { page: currentPage, pageCount, items: items.slice(currentPage * pageSize, (currentPage + 1) * pageSize) };
+}
+
+function renderPaperSection(key, title, description, entries) {
+  const pagination = paginateItems(entries, state.selectPages[key], 6);
+  state.selectPages[key] = pagination.page;
+  const cards = pagination.items.map(([id, data, attempts], index) => paperCard(id, data, index + pagination.page * 6, attempts)).join('');
+  const pager = pagination.pageCount > 1 ? `<div class="paper-pagination"><button class="button button-ghost button-sm" data-select-category="${key}" data-select-page="${pagination.page - 1}" ${pagination.page === 0 ? 'disabled' : ''}>上一页</button><span>第 ${pagination.page + 1} / ${pagination.pageCount} 页</span><button class="button button-ghost button-sm" data-select-category="${key}" data-select-page="${pagination.page + 1}" ${pagination.page === pagination.pageCount - 1 ? 'disabled' : ''}>下一页</button></div>` : '';
+  return `<section class="paper-section"><div class="section-subhead"><div><h2>${title}</h2><p>${description}</p></div><span>${entries.length} 份</span></div>${entries.length ? `<div class="paper-grid">${cards}</div>${pager}` : '<div class="empty-state paper-empty">暂无试卷</div>'}</section>`;
 }
 
 function paperCard(id, data, index, attempts = []) {
@@ -206,8 +241,8 @@ function paperCard(id, data, index, attempts = []) {
   const actions = [];
   if (open) actions.push(`<button class="button button-secondary button-sm" data-action="continue" data-paper="${escapeHTML(id)}">继续考试</button>`);
   if (submitted) actions.push(`<button class="button button-ghost button-sm" data-action="recent" data-paper="${escapeHTML(id)}" data-attempt="${escapeHTML(submitted.id)}">查看最近结果</button>`);
-  if (open || submitted) actions.push(`<button class="button button-primary button-sm" data-action="retake" data-paper="${escapeHTML(id)}">重新考试</button>`);
-  if (!actions.length) actions.push(`<button class="button button-primary button-sm" data-action="start" data-paper="${escapeHTML(id)}">开始考试</button>`);
+  if (open || submitted) actions.push(`<button class="button paper-action-primary button-sm" data-action="retake" data-paper="${escapeHTML(id)}">重新考试</button>`);
+  if (!actions.length) actions.push(`<button class="button paper-action-primary button-sm" data-action="start" data-paper="${escapeHTML(id)}">开始考试</button>`);
   const history = attempts.length ? `<div class="paper-history">已完成 ${attempts.filter((item) => item.status !== 'in_progress' && item.status !== 'abandoned').length} 次</div>` : '';
   return `<article class="paper-card"><span class="paper-index">${String(index + 1).padStart(2, '0')}</span><h3>${escapeHTML(paper.title)}</h3><span class="paper-id">${escapeHTML(paper.id || id)}</span><p>${escapeHTML(paper.description)}</p><div class="paper-meta"><span class="tag">${data.questions.length} 题</span><span class="tag">${paper.durationMinutes} 分钟</span><span class="tag">${paper.totalScore} 分</span></div><div class="paper-stats"><span>单选 ${summary.single}</span><span>多选 ${summary.multiple}</span><span>不定项 ${summary.indefinite}</span><span class="answer-status ${answerStatus[0]}">${answerStatus[1]}</span></div>${history}<div class="paper-actions">${actions.join('')}</div></article>`;
 }
@@ -220,7 +255,7 @@ function summarizePaper(data = {}) {
 }
 
 // Keep pure rendering helpers available to lightweight browser/Node checks.
-globalThis.__LAW_TEST_HOOKS__ = { summarizePaper, paperCard };
+globalThis.__LAW_TEST_HOOKS__ = { summarizePaper, paperCard, paperCategory, paginateItems };
 
 async function startExam(paperId) {
   const paper = await loadPaper(paperId);

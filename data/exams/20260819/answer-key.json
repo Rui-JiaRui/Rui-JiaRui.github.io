@@ -1,0 +1,26 @@
+{
+  "paperId": "20260819",
+  "version": "1.0",
+  "answers": {
+    "M001": {
+      "answer": [
+        "B",
+        "C"
+      ],
+      "analysis": "https://weibo.com/3153511812/Re8mis8Fu\n小睿第一次选ABC"
+    },
+    "M002": {
+      "answer": [
+        "C",
+        "D"
+      ],
+      "analysis": "https://weibo.com/2042198575/Re8mijlDr\n小睿第一次选BCD"
+    },
+    "I001": {
+      "answer": [
+        "D"
+      ],
+      "analysis": "委托人和代收行没有直接的法律关系，A项错误。托收行对代收行的行为免责，B项错误。银行对票据追索免责，C项错误。买方拒绝支付货款，卖方可依买卖合同追究其违约责任，D项正确。\n小睿第一次选BD"
+    }
+  }
+}
