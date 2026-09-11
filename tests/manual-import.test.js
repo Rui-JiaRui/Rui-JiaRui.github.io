@@ -114,3 +114,11 @@ test('paper cards expose continue, recent-result and retake actions from history
   assert.match(html, /查看最近结果/);
   assert.match(html, /重新考试/);
 });
+
+test('result action buttons wrap as whole buttons without stacking their text', () => {
+  const styles = fs.readFileSync(path.join(root, 'styles.css'), 'utf8');
+  assert.match(styles, /\.result-actions\s*\{[^}]*flex-wrap:\s*wrap/);
+  assert.match(styles, /\.result-actions \.button\s*\{[^}]*flex:\s*0 0 auto[^}]*width:\s*auto[^}]*white-space:\s*nowrap/);
+  const mobileRule = styles.match(/@media \(max-width: 560px\) \{[\s\S]*\n\}/)?.[0] || '';
+  assert.doesNotMatch(mobileRule, /\.result-actions\s*\{[^}]*flex-direction:\s*column/);
+});

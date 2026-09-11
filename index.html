@@ -8,11 +8,36 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&family=Source+Serif+4:wght@600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <div id="app" class="app-shell"></div>
-    <script src="data/demo.js"></script>
-    <script src="app.js" defer></script>
+    <script>
+      (() => {
+        const version = Date.now().toString(36);
+        window.__LAW_ASSET_VERSION__ = version;
+        const withVersion = (resourcePath) => `${resourcePath}?v=${encodeURIComponent(version)}`;
+        const showLoadError = () => {
+          document.querySelector('#app').innerHTML = '<main style="max-width:680px;margin:80px auto;padding:24px;font-family:system-ui,sans-serif">资源加载失败，请刷新页面重试。</main>';
+        };
+
+        const stylesheet = document.createElement('link');
+        stylesheet.rel = 'stylesheet';
+        stylesheet.href = withVersion('styles.css');
+        stylesheet.onerror = showLoadError;
+        document.head.appendChild(stylesheet);
+
+        const loadApp = () => {
+          const appScript = document.createElement('script');
+          appScript.src = withVersion('app.js');
+          appScript.onerror = showLoadError;
+          document.body.appendChild(appScript);
+        };
+        const demoScript = document.createElement('script');
+        demoScript.src = withVersion('data/demo.js');
+        demoScript.onload = loadApp;
+        demoScript.onerror = showLoadError;
+        document.body.appendChild(demoScript);
+      })();
+    </script>
   </body>
 </html>

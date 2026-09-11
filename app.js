@@ -60,6 +60,16 @@ const formatTime = (seconds) => `${String(Math.floor(seconds / 60)).padStart(2, 
 const formatDate = (stamp) => new Intl.DateTimeFormat('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(stamp));
 const uid = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
+function versionedURL(resourcePath) {
+  const version = globalThis.__LAW_ASSET_VERSION__ || Date.now().toString(36);
+  const separator = resourcePath.includes('?') ? '&' : '?';
+  return `${resourcePath}${separator}v=${encodeURIComponent(version)}`;
+}
+
+function freshFetch(resourcePath) {
+  return fetch(versionedURL(resourcePath), { cache: 'no-store' });
+}
+
 async function sha256(value) {
   if (!globalThis.crypto?.subtle) {
     if (value === 'K180') return 'd194b57af1169cc943ddb6cb4fa6aa4ae999bada1e0421e5c7101766d4f588f6';
@@ -79,7 +89,7 @@ async function loadPaper(paperId) {
   if (state.papers.has(paperId)) return state.papers.get(paperId);
   let paper;
   try {
-    const response = await fetch(`data/exams/${encodeURIComponent(paperId)}/paper.json`);
+    const response = await freshFetch(`data/exams/${encodeURIComponent(paperId)}/paper.json`);
     if (!response.ok) throw new Error('paper-load');
     paper = await response.json();
   } catch (error) {
@@ -337,7 +347,7 @@ async function submitAttempt(auto = false) {
   const paper = await loadPaper(state.attempt.paperId);
   let key = null;
   try {
-    const response = await fetch(`data/exams/${encodeURIComponent(state.attempt.paperId)}/answer-key.json`);
+    const response = await freshFetch(`data/exams/${encodeURIComponent(state.attempt.paperId)}/answer-key.json`);
     if (response.ok) key = await response.json();
   } catch { /* pending grading */ }
   key ||= globalThis.__LAW_DEMO__?.answerKeys?.[state.attempt.paperId] || null;
@@ -429,7 +439,7 @@ window.addEventListener('hashchange', renderRoute);
 (async function boot() {
   await dbStore.init();
   try {
-    const response = await fetch('data/registry.json');
+    const response = await freshFetch('data/registry.json');
     state.registry = await response.json();
     await renderRoute();
   } catch {

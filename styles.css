@@ -168,7 +168,8 @@ h3 { font-size: 18px; }
 .result-answer strong { color: var(--ink); }
 .analysis { margin-top: 14px; border-left: 3px solid var(--gold); padding: 9px 12px; color: var(--ink-2); background: #fbf8f0; font-size: 13px; }
 .pending-card { background: var(--surface); border: 1px solid var(--line); border-radius: 9px; padding: 28px; line-height: 1.8; color: var(--ink-2); }
-.result-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 22px; }
+.result-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 9px; margin-top: 22px; }
+.result-actions .button { flex: 0 0 auto; width: auto; white-space: nowrap; }
 .empty-state { text-align: center; color: var(--muted); padding: 45px 20px; border: 1px dashed var(--line); border-radius: 8px; }
 .attempt-history { margin-top: 28px; }
 .section-subhead { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
@@ -212,5 +213,5 @@ h3 { font-size: 18px; }
   .result-score { text-align: left; }
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
   .result-toolbar { align-items: flex-start; flex-direction: column; }
-  .result-actions { justify-content: stretch; flex-direction: column; }
+  .result-actions { justify-content: flex-start; }
 }
