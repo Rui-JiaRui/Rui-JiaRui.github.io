@@ -4,7 +4,7 @@
     {
       "username": "liurui",
       "passwordHash": "sha-256:d194b57af1169cc943ddb6cb4fa6aa4ae999bada1e0421e5c7101766d4f588f6",
-      "paperIds": ["20260801", "20260802"],
+      "paperIds": ["20260801", "20260802", "20260803"],
       "enabled": true
     }
   ]
