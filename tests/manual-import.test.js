@@ -122,3 +122,11 @@ test('result action buttons wrap as whole buttons without stacking their text', 
   const mobileRule = styles.match(/@media \(max-width: 560px\) \{[\s\S]*\n\}/)?.[0] || '';
   assert.doesNotMatch(mobileRule, /\.result-actions\s*\{[^}]*flex-direction:\s*column/);
 });
+
+test('result questions render every option for answer review', () => {
+  const source = fs.readFileSync(path.join(root, 'app.js'), 'utf8');
+  const match = source.match(/function resultQuestion\(question, attempt, graded, detail, index\) \{[\s\S]*?\n\}/);
+  assert.ok(match, 'resultQuestion helper should be defined');
+  assert.match(match[0], /question\.options\.map/);
+  assert.match(match[0], /option\.text/);
+});

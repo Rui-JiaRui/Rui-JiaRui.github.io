@@ -399,8 +399,15 @@ async function renderResult(attemptId) {
 
 function resultQuestion(question, attempt, graded, detail, index) {
   const selected = detail?.selected || attempt.answers[question.id] || [];
+  const correct = detail?.correct || [];
   const status = !selected.length ? ['empty', '未作答'] : detail?.isCorrect ? ['correct', '回答正确'] : ['wrong', '回答错误'];
-  return `<article class="result-question"><div class="result-question-head"><strong>第 ${index + 1} 题 · ${typeLabel(question.type)}</strong>${graded ? `<span class="status ${status[0]}">${status[1]}</span>` : ''}</div><p class="result-stem">${escapeHTML(question.stem)}</p>${graded ? `<div class="result-answer"><span>你的答案 <strong>${selected.length ? escapeHTML(selected.join('、')) : '未作答'}</strong></span><span>正确答案 <strong>${escapeHTML((detail?.correct || []).join('、'))}</strong></span></div>${detail?.analysis ? `<div class="analysis">${escapeHTML(detail.analysis)}</div>` : ''}` : ''}</article>`;
+  const options = question.options.map((option) => {
+    const isSelected = selected.includes(option.key);
+    const isCorrect = correct.includes(option.key);
+    const labels = [isSelected ? '你的选择' : '', isCorrect ? '正确答案' : ''].filter(Boolean);
+    return `<div class="result-option ${isSelected ? 'is-selected' : ''} ${isCorrect ? 'is-correct' : ''}"><span class="option-key">${escapeHTML(option.key)}</span><span class="option-text">${escapeHTML(option.text)}</span>${labels.length ? `<span class="result-option-label">${labels.join(' · ')}</span>` : ''}</div>`;
+  }).join('');
+  return `<article class="result-question"><div class="result-question-head"><strong>第 ${index + 1} 题 · ${typeLabel(question.type)}</strong>${graded ? `<span class="status ${status[0]}">${status[1]}</span>` : ''}</div><p class="result-stem">${escapeHTML(question.stem)}</p><div class="result-options">${options}</div>${graded ? `<div class="result-answer"><span>你的答案 <strong>${selected.length ? escapeHTML(selected.join('、')) : '未作答'}</strong></span><span>正确答案 <strong>${escapeHTML(correct.join('、'))}</strong></span></div>${detail?.analysis ? `<div class="analysis">${escapeHTML(detail.analysis)}</div>` : ''}` : ''}</article>`;
 }
 
 function exportAttempt(attempt, paper) {
