@@ -150,6 +150,15 @@ test('select page uses status sections and light paper action buttons', () => {
   assert.match(styles, /\.paper-pagination\s*\{/);
 });
 
+test('select page renders one active status tab at a time', () => {
+  const appSource = fs.readFileSync(path.join(root, 'app.js'), 'utf8');
+  const styles = fs.readFileSync(path.join(root, 'styles.css'), 'utf8');
+  assert.match(appSource, /class="select-tab \$\{state\.selectCategory === key \? 'is-active' : ''\}/);
+  assert.match(appSource, /const section = renderPaperSection\(\.\.\.selected, groups\[state\.selectCategory\]\)/);
+  assert.match(styles, /\.select-tabs\s*\{/);
+  assert.match(styles, /\.select-tab\.is-active\s*\{/);
+});
+
 test('result action buttons wrap as whole buttons without stacking their text', () => {
   const styles = fs.readFileSync(path.join(root, 'styles.css'), 'utf8');
   assert.match(styles, /\.result-actions\s*\{[^}]*flex-wrap:\s*wrap/);

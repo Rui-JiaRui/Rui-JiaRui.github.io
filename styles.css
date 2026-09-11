@@ -76,6 +76,12 @@ h3 { font-size: 18px; }
 
 .paper-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
 .paper-sections { display: grid; gap: 34px; }
+.select-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 26px; border-bottom: 1px solid var(--line); }
+.select-tab { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 10px 14px; border: 0; border-bottom: 3px solid transparent; background: transparent; color: var(--muted); font-weight: 700; }
+.select-tab:hover { color: var(--ink); background: #f0f5f7; }
+.select-tab.is-active { color: var(--teal); border-bottom-color: var(--teal); background: var(--teal-soft); }
+.select-tab span { min-width: 22px; padding: 2px 6px; border-radius: 10px; background: #eef2f6; color: var(--muted); font-size: 12px; }
+.select-tab.is-active span { background: var(--surface); color: var(--teal); }
 .paper-section { display: grid; gap: 14px; }
 .paper-section .section-subhead { margin-bottom: 0; }
 .paper-section .section-subhead h2 { font-size: 24px; }

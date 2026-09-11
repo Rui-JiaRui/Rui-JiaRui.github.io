@@ -9,7 +9,8 @@ const state = {
   timer: null,
   resultFilter: 'all',
   startingPaperIds: new Set(),
-  selectPages: {}
+  selectPages: {},
+  selectCategory: 'not_started'
 };
 
 const dbStore = {
@@ -189,12 +190,16 @@ async function renderSelect() {
   const paperEntries = await Promise.all(state.session.paperIds.map(async (id) => [id, await loadPaper(id), await findAttempts(id)]));
   const groups = { not_started: [], in_progress: [], completed: [] };
   paperEntries.forEach((entry) => groups[paperCategory(entry[2])].push(entry));
-  const sections = [
+  const categoryMeta = [
     ['not_started', '未完成', '尚未开始的试卷'],
     ['in_progress', '正在进行', '有答卷正在进行中'],
     ['completed', '已完成', '已有提交记录的试卷']
-  ].map(([key, title, description]) => renderPaperSection(key, title, description, groups[key])).join('');
-  app.innerHTML = `${topbar(state.session.username)}<main class="page"><a class="back-link" href="#/login">← 退出当前账号</a><div class="section-head"><div><div class="eyebrow">选择试卷</div><h1>开始一场练习</h1><p class="lead">按答卷状态选择试卷，未完成的答卷会在本机自动保存。</p></div></div><div class="paper-sections">${sections}</div></main>`;
+  ];
+  if (!groups[state.selectCategory]) state.selectCategory = 'not_started';
+  const tabs = categoryMeta.map(([key, title]) => `<button class="select-tab ${state.selectCategory === key ? 'is-active' : ''}" data-select-category="${key}" aria-selected="${state.selectCategory === key}">${title}<span>${groups[key].length}</span></button>`).join('');
+  const selected = categoryMeta.find(([key]) => key === state.selectCategory);
+  const section = renderPaperSection(...selected, groups[state.selectCategory]);
+  app.innerHTML = `${topbar(state.session.username)}<main class="page"><a class="back-link" href="#/login">← 退出当前账号</a><div class="section-head"><div><div class="eyebrow">选择试卷</div><h1>开始一场练习</h1><p class="lead">按答卷状态选择试卷，未完成的答卷会在本机自动保存。</p></div></div><div class="select-tabs" role="tablist">${tabs}</div><div class="paper-sections">${section}</div></main>`;
   document.querySelectorAll('[data-action]').forEach((button) => {
     button.addEventListener('click', () => {
       const paperId = button.dataset.paper;
@@ -207,6 +212,13 @@ async function renderSelect() {
     button.addEventListener('click', () => {
       const key = button.dataset.selectCategory;
       state.selectPages[key] = Number(button.dataset.selectPage);
+      renderSelect();
+    });
+  });
+  document.querySelectorAll('[data-select-category]').forEach((button) => {
+    button.addEventListener('click', () => {
+      if (button.dataset.selectPage !== undefined) return;
+      state.selectCategory = button.dataset.selectCategory;
       renderSelect();
     });
   });
