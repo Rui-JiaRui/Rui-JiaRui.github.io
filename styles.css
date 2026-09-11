@@ -76,6 +76,12 @@ h3 { font-size: 18px; }
 
 .paper-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
 .paper-sections { display: grid; gap: 34px; }
+.select-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
+.select-title { color: var(--ink); font-size: 30px; letter-spacing: 0; }
+.select-stats { display: flex; gap: 10px; }
+.select-stats > div { min-width: 142px; padding: 12px 15px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); }
+.select-stats span, .select-stats small { color: var(--muted); font-size: 11px; }
+.select-stats strong { margin: 0 4px 0 0; color: var(--ink); font-family: "Source Serif 4", serif; font-size: 27px; }
 .select-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 26px; border-bottom: 1px solid var(--line); }
 .select-tab { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 10px 14px; border: 0; border-bottom: 3px solid transparent; background: transparent; color: var(--muted); font-weight: 700; }
 .select-tab:hover { color: var(--ink); background: #f0f5f7; }
@@ -221,6 +227,9 @@ h3 { font-size: 18px; }
   h1 { font-size: 35px; }
   .login-card { padding: 23px; }
   .paper-grid { grid-template-columns: 1fr; }
+  .select-header { align-items: flex-start; flex-direction: column; gap: 15px; }
+  .select-stats { width: 100%; }
+  .select-stats > div { flex: 1; min-width: 0; padding: 11px 10px; }
   .paper-card { min-height: 205px; }
   .exam-title h1 { font-size: 23px; }
   .timer { padding: 8px 10px; font-size: 13px; }
