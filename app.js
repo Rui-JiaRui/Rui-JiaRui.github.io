@@ -1,5 +1,5 @@
 const app = document.querySelector('#app');
-const DEMO_HINT = '演示账号：student01 · 密码：law2026';
+const DEMO_HINT = '专用账号：liurui · 密码：K180';
 
 const state = {
   registry: null,
@@ -61,7 +61,7 @@ const uid = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
 async function sha256(value) {
   if (!globalThis.crypto?.subtle) {
-    if (value === 'law2026') return 'ededc647b824693a6a632e7ceb8bbdc4feea781ba5d68bd52e382b202d714c3d';
+    if (value === 'K180') return 'd194b57af1169cc943ddb6cb4fa6aa4ae999bada1e0421e5c7101766d4f588f6';
     throw new Error('Web Crypto unavailable');
   }
   try {
@@ -69,7 +69,7 @@ async function sha256(value) {
     const hash = await crypto.subtle.digest('SHA-256', bytes);
     return [...new Uint8Array(hash)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
   } catch (error) {
-    if (value === 'law2026') return 'ededc647b824693a6a632e7ceb8bbdc4feea781ba5d68bd52e382b202d714c3d';
+    if (value === 'K180') return 'd194b57af1169cc943ddb6cb4fa6aa4ae999bada1e0421e5c7101766d4f588f6';
     throw error;
   }
 }
@@ -146,8 +146,20 @@ async function renderSelect() {
 
 function paperCard(id, data, index) {
   const paper = data.paper;
-  return `<button class="paper-card" data-paper="${escapeHTML(id)}"><span class="paper-index">${String(index + 1).padStart(2, '0')}</span><h3>${escapeHTML(paper.title)}</h3><p>${escapeHTML(paper.description)}</p><div class="paper-meta"><span class="tag">${data.questions.length} 题</span><span class="tag">${paper.durationMinutes} 分钟</span><span class="tag">${paper.totalScore} 分</span></div></button>`;
+  const summary = summarizePaper(data);
+  const answerStatus = paper.hasAnswerKey ? ['is-ready', '已配置答案'] : ['is-pending', '待配置答案'];
+  return `<button class="paper-card" data-paper="${escapeHTML(id)}"><span class="paper-index">${String(index + 1).padStart(2, '0')}</span><h3>${escapeHTML(paper.title)}</h3><span class="paper-id">${escapeHTML(paper.id || id)}</span><p>${escapeHTML(paper.description)}</p><div class="paper-meta"><span class="tag">${data.questions.length} 题</span><span class="tag">${paper.durationMinutes} 分钟</span><span class="tag">${paper.totalScore} 分</span></div><div class="paper-stats"><span>单选 ${summary.single}</span><span>多选 ${summary.multiple}</span><span>不定项 ${summary.indefinite}</span><span class="answer-status ${answerStatus[0]}">${answerStatus[1]}</span></div></button>`;
 }
+
+function summarizePaper(data = {}) {
+  return (data.questions || []).reduce((summary, question) => {
+    if (Object.hasOwn(summary, question.type)) summary[question.type] += 1;
+    return summary;
+  }, { single: 0, multiple: 0, indefinite: 0 });
+}
+
+// Keep pure rendering helpers available to lightweight browser/Node checks.
+globalThis.__LAW_TEST_HOOKS__ = { summarizePaper, paperCard };
 
 async function startExam(paperId) {
   const paper = await loadPaper(paperId);

@@ -79,9 +79,14 @@ h3 { font-size: 18px; }
 .paper-card:hover { border-color: var(--teal); box-shadow: var(--shadow); transform: translateY(-2px); }
 .paper-index { width: 31px; height: 31px; display: grid; place-items: center; border-radius: 7px; color: var(--teal); background: var(--teal-soft); font-weight: 700; margin-bottom: 20px; }
 .paper-card h3 { font-family: "Source Serif 4", serif; font-size: 22px; }
+.paper-id { color: var(--muted); font: 11px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; margin-top: 4px; }
 .paper-card p { color: var(--muted); line-height: 1.7; font-size: 14px; margin-top: 8px; }
 .paper-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; padding-top: 22px; }
 .tag { border-radius: 4px; padding: 5px 8px; font-size: 12px; color: var(--ink-2); background: #eef2f6; }
+.paper-stats { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-top: 13px; color: var(--muted); font-size: 12px; }
+.answer-status { margin-left: auto; border-radius: 4px; padding: 5px 8px; font-weight: 700; }
+.answer-status.is-ready { color: var(--teal); background: var(--teal-soft); }
+.answer-status.is-pending { color: #8a651f; background: #fff7df; }
 .back-link { display: inline-flex; gap: 7px; align-items: center; color: var(--muted); font-size: 13px; text-decoration: none; margin-bottom: 24px; }
 .back-link:hover { color: var(--ink); }
 

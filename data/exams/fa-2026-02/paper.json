@@ -6,7 +6,8 @@
     "description": "行政法与民事诉讼法练习，本卷暂未配置标准答案。",
     "durationMinutes": 20,
     "totalScore": 3,
-    "showResultAfterSubmit": true
+    "showResultAfterSubmit": true,
+    "hasAnswerKey": false
   },
   "questions": [
     {"id":"Q101","type":"single","score":1,"stem":"行政机关作出行政处罚决定前，应当依法告知当事人：","options":[{"key":"A","text":"处罚的事实、理由和依据"},{"key":"B","text":"承办人员家庭住址"},{"key":"C","text":"其他案件的处理结果"},{"key":"D","text":"行政机关年度预算"}],"tags":["行政法","行政处罚"]},

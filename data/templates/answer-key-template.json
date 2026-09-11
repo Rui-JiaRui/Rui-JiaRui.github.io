@@ -1,0 +1,18 @@
+{
+  "paperId": "manual-2026-01",
+  "version": "1.0",
+  "answers": {
+    "M001": {
+      "answer": ["A"],
+      "analysis": "填写单选题答案解析。"
+    },
+    "M002": {
+      "answer": ["A", "C"],
+      "analysis": "填写多选题答案解析。"
+    },
+    "M003": {
+      "answer": ["B"],
+      "analysis": "填写不定项选择题答案解析。"
+    }
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "schemaVersion": "1.0",
+  "paper": {
+    "id": "manual-2026-01",
+    "title": "手动维护试卷示例",
+    "description": "请复制本模板后替换为实际试卷内容。",
+    "durationMinutes": 30,
+    "totalScore": 3,
+    "showResultAfterSubmit": true,
+    "hasAnswerKey": false
+  },
+  "questions": [
+    {
+      "id": "M001",
+      "type": "single",
+      "score": 1,
+      "stem": "下列哪一项是单选题示例？",
+      "options": [
+        {
+          "key": "A",
+          "text": "单选题选项 A"
+        },
+        {
+          "key": "B",
+          "text": "单选题选项 B"
+        },
+        {
+          "key": "C",
+          "text": "单选题选项 C"
+        }
+      ],
+      "tags": ["示例"]
+    },
+    {
+      "id": "M002",
+      "type": "multiple",
+      "score": 1,
+      "stem": "下列哪些是多选题示例的正确选项？",
+      "options": [
+        {
+          "key": "A",
+          "text": "多选题选项 A"
+        },
+        {
+          "key": "B",
+          "text": "多选题选项 B"
+        },
+        {
+          "key": "C",
+          "text": "多选题选项 C"
+        }
+      ],
+      "tags": ["示例"]
+    },
+    {
+      "id": "M003",
+      "type": "indefinite",
+      "score": 1,
+      "stem": "下列关于不定项选择题示例的表述，正确的是：",
+      "options": [
+        {
+          "key": "A",
+          "text": "不定项选择题选项 A"
+        },
+        {
+          "key": "B",
+          "text": "不定项选择题选项 B"
+        },
+        {
+          "key": "C",
+          "text": "不定项选择题选项 C"
+        }
+      ],
+      "tags": ["示例"]
+    }
+  ]
+}

@@ -2,12 +2,12 @@
 window.__LAW_DEMO__ = {
   registry: {
     schemaVersion: '1.0',
-    accounts: [{ username: 'student01', passwordHash: 'sha-256:ededc647b824693a6a632e7ceb8bbdc4feea781ba5d68bd52e382b202d714c3d', paperIds: ['fa-2026-01', 'fa-2026-02'], enabled: true }]
+    accounts: [{ username: 'liurui', passwordHash: 'sha-256:d194b57af1169cc943ddb6cb4fa6aa4ae999bada1e0421e5c7101766d4f588f6', paperIds: ['fa-2026-01', 'fa-2026-02'], enabled: true }]
   },
   papers: {
     'fa-2026-01': {
       schemaVersion: '1.0',
-      paper: { id: 'fa-2026-01', title: '法考客观题模拟卷一', description: '民法与刑法基础综合练习，适合阶段性自测。', durationMinutes: 30, totalScore: 5, showResultAfterSubmit: true },
+      paper: { id: 'fa-2026-01', title: '法考客观题模拟卷一', description: '民法与刑法基础综合练习，适合阶段性自测。', durationMinutes: 30, totalScore: 5, showResultAfterSubmit: true, hasAnswerKey: true },
       questions: [
         { id: 'Q001', type: 'single', score: 1, stem: '甲将自己的手机借给乙使用。下列关于该借用关系的说法，正确的是：', options: [{ key: 'A', text: '乙取得手机的所有权' }, { key: 'B', text: '甲仍享有手机的所有权' }, { key: 'C', text: '乙可以不经同意转借给第三人' }, { key: 'D', text: '借用关系必然有偿' }], tags: ['民法', '物权'] },
         { id: 'Q002', type: 'multiple', score: 1, stem: '下列哪些情形属于民事法律行为的意思表示？', options: [{ key: 'A', text: '签订买卖合同' }, { key: 'B', text: '订立遗嘱' }, { key: 'C', text: '在心中形成购买计划' }, { key: 'D', text: '作出赠与承诺' }], tags: ['民法', '总则'] },
@@ -18,7 +18,7 @@ window.__LAW_DEMO__ = {
     },
     'fa-2026-02': {
       schemaVersion: '1.0',
-      paper: { id: 'fa-2026-02', title: '法考客观题模拟卷二', description: '行政法与民事诉讼法练习，本卷暂未配置标准答案。', durationMinutes: 20, totalScore: 3, showResultAfterSubmit: true },
+      paper: { id: 'fa-2026-02', title: '法考客观题模拟卷二', description: '行政法与民事诉讼法练习，本卷暂未配置标准答案。', durationMinutes: 20, totalScore: 3, showResultAfterSubmit: true, hasAnswerKey: false },
       questions: [
         { id: 'Q101', type: 'single', score: 1, stem: '行政机关作出行政处罚决定前，应当依法告知当事人：', options: [{ key: 'A', text: '处罚的事实、理由和依据' }, { key: 'B', text: '承办人员家庭住址' }, { key: 'C', text: '其他案件的处理结果' }, { key: 'D', text: '行政机关年度预算' }], tags: ['行政法', '行政处罚'] },
         { id: 'Q102', type: 'multiple', score: 1, stem: '民事诉讼中，当事人可以申请回避的人员包括：', options: [{ key: 'A', text: '审判人员' }, { key: 'B', text: '书记员' }, { key: 'C', text: '翻译人员' }, { key: 'D', text: '旁听群众' }], tags: ['民诉法', '程序'] },

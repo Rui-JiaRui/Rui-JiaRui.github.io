@@ -6,7 +6,8 @@
     "description": "民法与刑法基础综合练习，适合阶段性自测。",
     "durationMinutes": 30,
     "totalScore": 5,
-    "showResultAfterSubmit": true
+    "showResultAfterSubmit": true,
+    "hasAnswerKey": true
   },
   "questions": [
     {"id":"Q001","type":"single","score":1,"stem":"甲将自己的手机借给乙使用。下列关于该借用关系的说法，正确的是：","options":[{"key":"A","text":"乙取得手机的所有权"},{"key":"B","text":"甲仍享有手机的所有权"},{"key":"C","text":"乙可以不经同意转借给第三人"},{"key":"D","text":"借用关系必然有偿"}],"tags":["民法","物权"]},
