@@ -33,6 +33,16 @@ test('deployed and direct-file credentials use liurui and the K180 SHA-256 hash'
   assert.match(demoSource, new RegExp(expectedHash));
 });
 
+test('test account exists in registry but is not shown in the public login hint', () => {
+  const registry = readJSON('data/registry.json');
+  const account = registry.accounts.find((item) => item.username === 'test');
+  const appSource = fs.readFileSync(path.join(root, 'app.js'), 'utf8');
+  assert.ok(account?.enabled);
+  assert.deepEqual(account.paperIds, ['20260801']);
+  assert.equal(account.passwordHash, `sha-256:${crypto.createHash('sha256').update('test').digest('hex')}`);
+  assert.doesNotMatch(appSource.match(/const DEMO_HINT = .*;/)?.[0] || '', /test/);
+});
+
 test('manual import templates exist and are valid JSON', () => {
   assert.doesNotThrow(() => readJSON('data/templates/paper-template.json'));
   assert.doesNotThrow(() => readJSON('data/templates/answer-key-template.json'));

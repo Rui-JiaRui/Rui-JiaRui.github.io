@@ -20,6 +20,16 @@ test('index loads local assets with one page version and keeps demo before app',
   assert.match(html, /资源加载失败，请刷新页面重试/);
 });
 
+test('index merges deployment Supabase overrides with the linked-project defaults', () => {
+  const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+
+  assert.match(html, /const defaultSupabaseConfig/);
+  assert.match(html, /url:\s*'https:\/\/nuyrjibjpzdcblnlteqx\.supabase\.co'/);
+  assert.match(html, /functionsUrl:\s*''/);
+  assert.match(html, /window\.__LAW_SUPABASE__ = \{\s*\.\.\.defaultSupabaseConfig/);
+  assert.match(html, /\.\.\.\(window\.__LAW_SUPABASE__\s*\|\|\s*\{\}\)/);
+});
+
 test('versionedURL appends the current page version', () => {
   const source = fs.readFileSync(path.join(root, 'app.js'), 'utf8');
   const match = source.match(/function versionedURL\(resourcePath\) \{[\s\S]*?\n\}/);

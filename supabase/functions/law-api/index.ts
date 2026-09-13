@@ -20,6 +20,10 @@ function decodeBase64(value: string) {
   return atob(normalized + '='.repeat((4 - normalized.length % 4) % 4));
 }
 
+function normalizePasswordHash(value: unknown) {
+  return String(value ?? '').trim().replace(/^sha-?256:/i, '').toLowerCase();
+}
+
 async function signToken(username: string) {
   const header = base64url(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
   const payload = base64url(JSON.stringify({ sub: username, username, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 12 }));
@@ -45,10 +49,18 @@ async function body(request: Request) { return await request.json().catch(() => 
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers: cors });
   const url = new URL(request.url);
-  const segments = url.pathname.split('/').filter(Boolean).slice(1); // drop function name
+  const allSegments = url.pathname.split('/').filter(Boolean);
+  const routeStart = Math.max(allSegments.indexOf('auth'), allSegments.indexOf('attempts'));
+  const segments = routeStart >= 0 ? allSegments.slice(routeStart) : [];
   if (segments[0] === 'auth' && segments[1] === 'login' && request.method === 'POST') {
-    const { username, passwordHash } = await body(request);
-    const { data: account } = await supabase.from('law_users').select('username,paper_ids,enabled').eq('username', username).eq('password_hash', passwordHash).maybeSingle();
+    const { username, passwordDigest, passwordHash, password_digest } = await body(request);
+    const digest = normalizePasswordHash(passwordDigest || password_digest || passwordHash);
+    const { data: candidates, error } = await supabase.from('law_users').select('username,password_hash,paper_ids,enabled').eq('username', username).limit(1);
+    if (error) {
+      console.error('law_users login query failed', error);
+      return json({ error: 'login-query-failed' }, 500);
+    }
+    const account = candidates?.find((item) => normalizePasswordHash(item.password_hash) === digest);
     if (!account?.enabled) return json({ error: 'invalid-credentials' }, 401);
     return json({ token: await signToken(account.username), user: { username: account.username, paperIds: account.paper_ids } });
   }
@@ -92,11 +104,12 @@ function toAttempt(row: any) {
 async function saveAttempt(request: Request, username: string, id: string, submit: boolean) {
   const payload = await body(request); const attempt = payload.attempt || {};
   const { data: account } = await supabase.from('law_users').select('paper_ids,enabled').eq('username', username).maybeSingle();
-  if (!account?.enabled || !account.paper_ids?.includes(attempt.paperId)) return json({ error: 'paper-forbidden' }, 403);
+  if (!account?.enabled || !Array.isArray(account.paper_ids) || account.paper_ids.length === 0 || !account.paper_ids.includes(attempt.paperId)) return json({ error: 'paper-forbidden' }, 403);
   const { data: existing } = await supabase.from('law_attempts').select('*').eq('id', id).eq('username', username).maybeSingle();
   if (existing && existing.status !== 'in_progress' && !submit) return json({ error: 'attempt-locked' }, 409);
   if (existing && existing.status !== 'in_progress' && submit) return json({ attempt: toAttempt(existing) });
-  const row = { id, username, paper_id: attempt.paperId, paper_version: attempt.paperVersion || '1.0', started_at: attempt.startedAt, expires_at: attempt.expiresAt, submitted_at: submit ? (attempt.submittedAt || Date.now()) : attempt.submittedAt, status: submit ? (attempt.status || 'submitted_ungraded') : (attempt.status || 'in_progress'), current_index: attempt.currentIndex || 0, answers: attempt.answers || {}, marked: attempt.marked || [], grading: attempt.grading || null, annotations: attempt.annotations || {}, updated_at: Date.now() };
+  const status = submit ? (attempt.grading ? 'graded' : 'submitted_ungraded') : 'in_progress';
+  const row = { id, username, paper_id: attempt.paperId, paper_version: attempt.paperVersion || '1.0', started_at: attempt.startedAt, expires_at: attempt.expiresAt, submitted_at: submit ? (attempt.submittedAt || Date.now()) : attempt.submittedAt, status, current_index: attempt.currentIndex || 0, answers: attempt.answers || {}, marked: attempt.marked || [], grading: attempt.grading || null, annotations: attempt.annotations || {}, updated_at: Date.now() };
   const { data, error } = await supabase.from('law_attempts').upsert(row).select().single();
   return error ? json({ error: error.message }, 500) : json({ attempt: toAttempt(data) });
 }

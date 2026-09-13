@@ -24,6 +24,11 @@ create table if not exists public.law_attempts (
   updated_at bigint not null
 );
 
+-- Upgrade an existing deployment created before cloud annotations were added.
+-- This is safe to run repeatedly and fills the new field for old attempts.
+alter table public.law_attempts
+  add column if not exists annotations jsonb not null default '{}'::jsonb;
+
 create index if not exists law_attempts_user_paper_idx on public.law_attempts(username, paper_id, started_at desc);
 
 create table if not exists public.law_annotations (
@@ -41,3 +46,14 @@ alter table public.law_annotations enable row level security;
 
 -- The Edge Function uses the service role key, while browser clients never
 -- receive direct table access.
+
+-- Non-public smoke-test account. The website does not display these
+-- credentials on its login page; this row is safe to re-run.
+insert into public.law_users (username, password_hash, paper_ids, enabled)
+values (
+  'test',
+  'sha-256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08',
+  ARRAY['20260801']::text[],
+  true
+)
+on conflict (username) do update set password_hash = excluded.password_hash, paper_ids = excluded.paper_ids, enabled = excluded.enabled;

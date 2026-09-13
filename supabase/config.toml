@@ -1,0 +1,5 @@
+# The function implements its own short-lived JWT after checking the existing
+# username/password hash, so the Supabase gateway must let the login route in
+# without requiring a Supabase Auth JWT first.
+[functions.law-api]
+verify_jwt = false

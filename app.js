@@ -38,7 +38,11 @@ class CloudRepository {
       try {
         const response = await fetch(`${this.baseUrl}${path}`, { ...options, headers });
         const payload = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(payload.error || `cloud-${response.status}`);
+        if (!response.ok) {
+          const requestError = new Error(payload.error || `cloud-${response.status}`);
+          requestError.status = response.status;
+          throw requestError;
+        }
         return payload;
       } catch (error) {
         lastError = error;
@@ -48,8 +52,18 @@ class CloudRepository {
     throw lastError;
   }
 
-  login(username, passwordHash) {
-    return this.request('/auth/login', { method: 'POST', body: JSON.stringify({ username, passwordHash }) });
+  login(username, passwordDigest) {
+    const digest = normalizePasswordHash(passwordDigest);
+    return this.request('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({
+        username,
+        passwordDigest: digest,
+        password_digest: digest,
+        passwordHash: `sha-256:${digest}`,
+        passwordHashVariants: [digest, `sha-256:${digest}`]
+      })
+    });
   }
 
   listAttempts(paperId) {
@@ -133,6 +147,14 @@ function typeLabel(type) {
 const formatTime = (seconds) => `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
 const formatDate = (stamp) => new Intl.DateTimeFormat('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(stamp));
 const uid = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+function normalizePasswordHash(value) {
+  return String(value || '').trim().replace(/^sha-?256:/i, '').toLowerCase();
+}
+
+function passwordHashMatches(storedHash, digest) {
+  return normalizePasswordHash(storedHash) === normalizePasswordHash(digest);
+}
 
 function answerProvided(question, answer) {
   if (question?.type === 'subjective') return typeof answer === 'string' && answer.trim().length > 0;
@@ -317,27 +339,40 @@ async function handleLogin(event) {
   if (!state.registry?.accounts) { renderLogin('账号配置尚未加载，请刷新页面后重试。'); return; }
   const form = new FormData(event.currentTarget);
   const username = String(form.get('username')).trim();
-  const passwordHash = `sha-256:${await sha256(String(form.get('password')))}`;
+  const passwordDigest = await sha256(String(form.get('password')));
   let account = null;
   let token = null;
   if (cloudStore.enabled) {
     try {
-      const remote = await cloudStore.login(username, passwordHash);
+      const remote = await cloudStore.login(username, passwordDigest);
       token = remote.token || remote.accessToken;
       account = remote.user || remote.account || remote;
-      if (!token || !account?.paperIds) throw new Error('invalid-login-response');
+      const paperIds = account?.paperIds || account?.paper_ids;
+      if (account && paperIds && !account.paperIds) account.paperIds = paperIds;
+      if (!token || !account || !Array.isArray(account?.paperIds) || account.paperIds.length === 0) {
+        const invalidResponse = new Error('invalid-login-response');
+        invalidResponse.status = 502;
+        throw invalidResponse;
+      }
       cloudStore.token = token;
     } catch (error) {
-      // Keep the static mode usable while offline; the next save will retry cloud sync.
-      if (/cloud-401|invalid-credentials/.test(String(error.message || error))) {
-        renderLogin('账号或密码不正确，请重新输入。');
+      // Only fall back to the static registry when no HTTP response was received.
+      // HTTP auth/server errors must remain visible so a broken cloud deployment
+      // cannot look like a successful local login whose answers never sync.
+      if (Number(error?.status || 0) > 0) {
+        renderLogin(Number(error.status) === 401 ? '账号或密码不正确。' : '云端服务暂时不可用，请检查云端配置。');
         return;
       }
-      account = state.registry.accounts.find((item) => item.enabled && item.username === username && item.passwordHash === passwordHash);
+      const browserOffline = typeof navigator !== 'undefined' && navigator.onLine === false;
+      if (!browserOffline) {
+        renderLogin('无法连接云端服务，请检查配置或稍后重试。');
+        return;
+      }
+      account = state.registry.accounts.find((item) => item.enabled && item.username === username && Array.isArray(item.paperIds) && item.paperIds.length > 0 && passwordHashMatches(item.passwordHash, passwordDigest));
       if (!account) { renderLogin('账号或密码不正确，或云端暂时不可用。'); return; }
     }
   } else {
-    account = state.registry.accounts.find((item) => item.enabled && item.username === username && item.passwordHash === passwordHash);
+    account = state.registry.accounts.find((item) => item.enabled && item.username === username && Array.isArray(item.paperIds) && item.paperIds.length > 0 && passwordHashMatches(item.passwordHash, passwordDigest));
   }
   if (!account) { renderLogin('账号或密码不正确，请重新输入。'); return; }
   state.session = { username, paperIds: account.paperIds, token };
@@ -454,7 +489,7 @@ function summarizePaper(data = {}) {
 }
 
 // Keep pure rendering helpers available to lightweight browser/Node checks.
-globalThis.__LAW_TEST_HOOKS__ = { summarizePaper, paperCard, paperCategory, paginateItems, aggregatePracticeStats, typeLabel, answerProvided, gradeAttempt, CloudRepository };
+globalThis.__LAW_TEST_HOOKS__ = { summarizePaper, paperCard, paperCategory, paginateItems, aggregatePracticeStats, typeLabel, answerProvided, gradeAttempt, CloudRepository, normalizePasswordHash, passwordHashMatches };
 
 async function startExam(paperId) {
   const paper = await loadPaper(paperId);

@@ -14,9 +14,18 @@
     <script>
       (() => {
         const version = Date.now().toString(36);
-        // Optional cloud configuration. Fill these values for Supabase sync;
-        // leaving functionsUrl empty keeps the offline/local mode working.
-        window.__LAW_SUPABASE__ = window.__LAW_SUPABASE__ || { functionsUrl: 'https://nuyrjibjpzdcblnlteqx.supabase.co/functions/v1/law-api', anonKey: 'sb_publishable_Dx6p25rg7KxMtV4e3jBx7w_BMtKgOZC' };
+        // Optional cloud configuration. A deployment can define
+        // window.__LAW_SUPABASE__ before this block to override the defaults
+        // (for example, with its own project URL and anon key).
+        const defaultSupabaseConfig = {
+          // Project linked by the Supabase CLI in this workspace. Set either
+          // `url` or `functionsUrl` when deploying to a different project.
+          // Keep anonKey empty when verify_jwt = false; otherwise provide it.
+          url: 'https://nuyrjibjpzdcblnlteqx.supabase.co',
+          functionsUrl: '',
+          anonKey: ''
+        };
+        window.__LAW_SUPABASE__ = { ...defaultSupabaseConfig, ...(window.__LAW_SUPABASE__ || {}) };
         window.__LAW_ASSET_VERSION__ = version;
         const withVersion = (resourcePath) => `${resourcePath}?v=${encodeURIComponent(version)}`;
         const showLoadError = () => {
