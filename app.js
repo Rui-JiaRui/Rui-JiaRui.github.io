@@ -96,6 +96,33 @@ class CloudRepository {
 
 const cloudStore = new CloudRepository();
 cloudStore.token = state.session?.token || null;
+let cloudSyncQueue = Promise.resolve();
+let localPersistQueue = Promise.resolve();
+let cloudSyncAccepting = true;
+let cloudSyncRevision = 0;
+
+function enqueueCloudSync(snapshot) {
+  if (!cloudSyncAccepting || !cloudStore.enabled || !state.session?.token || snapshot.status !== 'in_progress') return;
+  const revision = ++cloudSyncRevision;
+  cloudSyncQueue = cloudSyncQueue.then(async () => {
+    try {
+      await cloudStore.saveAttempt(snapshot);
+      if (revision === cloudSyncRevision && state.attempt?.id === snapshot.id) {
+        state.attempt.syncState = 'synced';
+        await dbStore.put(state.attempt);
+      }
+    } catch {
+      if (revision === cloudSyncRevision && state.attempt?.id === snapshot.id) {
+        state.attempt.syncState = 'pending';
+        await dbStore.put(state.attempt);
+      }
+    }
+  });
+}
+
+function flushCloudSync() {
+  return Promise.all([cloudSyncQueue, localPersistQueue]);
+}
 
 const dbStore = {
   db: null,
@@ -294,18 +321,11 @@ function renderAttemptHistory(attempts, currentId) {
 
 async function persist() {
   if (!state.attempt) return;
-  state.attempt.updatedAt = Date.now();
-  await dbStore.put(state.attempt);
-  if (cloudStore.enabled && state.session?.token && !['submitted_ungraded', 'graded'].includes(state.attempt.status)) {
-    try {
-      const remote = await cloudStore.saveAttempt(state.attempt);
-      state.attempt = { ...state.attempt, ...remote, syncState: 'synced' };
-      await dbStore.put(state.attempt);
-    } catch {
-      state.attempt.syncState = 'pending';
-      await dbStore.put(state.attempt);
-    }
-  }
+  const snapshot = JSON.parse(JSON.stringify({ ...state.attempt, updatedAt: Date.now() }));
+  state.attempt.updatedAt = snapshot.updatedAt;
+  localPersistQueue = localPersistQueue.then(() => dbStore.put(snapshot));
+  await localPersistQueue;
+  enqueueCloudSync(snapshot);
 }
 
 function topbar(candidate = '') {
@@ -376,6 +396,7 @@ async function handleLogin(event) {
   }
   if (!account) { renderLogin('账号或密码不正确，请重新输入。'); return; }
   state.session = { username, paperIds: account.paperIds, token };
+  cloudSyncAccepting = true;
   sessionStorage.setItem('law-session', JSON.stringify(state.session));
   const target = account.paperIds.length > 1 ? 'select' : `exam/${account.paperIds[0]}`;
   navigate(target);
@@ -523,6 +544,7 @@ async function startNewAttempt(paperId, loadedPaper = null, loadedAttempts = nul
       }
     }
     state.attempt = createAttempt(paperId, paper, state.session.username);
+    cloudSyncAccepting = true;
     await persist();
     navigate(`exam/${paperId}`);
   } finally {
@@ -621,6 +643,7 @@ async function toggleMark() {
 async function moveQuestion(delta, paper) {
   state.attempt.currentIndex = Math.max(0, Math.min(paper.questions.length - 1, state.attempt.currentIndex + delta));
   await persist();
+  await flushCloudSync();
   await renderExam(paper.paper.id);
 }
 
@@ -634,6 +657,8 @@ async function confirmSubmit() {
 async function submitAttempt(auto = false) {
   if (!state.attempt || state.attempt.status !== 'in_progress') return;
   stopTimer();
+  cloudSyncAccepting = false;
+  await flushCloudSync();
   const paper = await loadPaper(state.attempt.paperId);
   let key = null;
   try {
