@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.0",
+  "schemaVersion": "1.1",
   "paper": {
     "id": "manual-2026-01",
     "title": "手动维护试卷示例",
@@ -71,6 +71,14 @@
           "text": "不定项选择题选项 C"
         }
       ],
+      "tags": ["示例"]
+    },
+    {
+      "id": "E001",
+      "type": "subjective",
+      "score": 0,
+      "stem": "请结合相关法律规定简要论述。",
+      "maxLength": 5000,
       "tags": ["示例"]
     }
   ]

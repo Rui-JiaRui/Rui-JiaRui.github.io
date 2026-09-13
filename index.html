@@ -14,6 +14,9 @@
     <script>
       (() => {
         const version = Date.now().toString(36);
+        // Optional cloud configuration. Fill these values for Supabase sync;
+        // leaving functionsUrl empty keeps the offline/local mode working.
+        window.__LAW_SUPABASE__ = window.__LAW_SUPABASE__ || { functionsUrl: 'https://nuyrjibjpzdcblnlteqx.supabase.co/functions/v1/law-api', anonKey: 'sb_publishable_Dx6p25rg7KxMtV4e3jBx7w_BMtKgOZC' };
         window.__LAW_ASSET_VERSION__ = version;
         const withVersion = (resourcePath) => `${resourcePath}?v=${encodeURIComponent(version)}`;
         const showLoadError = () => {

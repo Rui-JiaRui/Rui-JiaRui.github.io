@@ -53,6 +53,16 @@ test('parseExamText recognizes three question regions and supported types', () =
   assert.deepEqual(questions[2].answer, ['A', 'B']);
 });
 
+test('parseExamText and buildExamFiles support subjective questions', () => {
+  const questions = parseExamText('【民法1】请结合案例分析（主观题）\n\n参考答案：应当依法承担责任。', 'subjective.txt');
+  assert.equal(questions[0].type, 'subjective');
+  assert.equal(questions[0].referenceAnswer, '应当依法承担责任。');
+  const result = buildExamFiles('subjective', questions);
+  assert.equal(result.paper.questions[0].id, 'E001');
+  assert.equal(result.paper.questions[0].options, undefined);
+  assert.equal(result.answerKey.answers.E001.referenceAnswer, '应当依法承担责任。');
+});
+
 test('parseExamText accepts CRLF and ignores surrounding blank lines', () => {
   const questions = parseExamText(`\r\n${sample.replace(/\n/g, '\r\n')}\r\n`, 'windows.txt');
   assert.equal(questions.length, 3);

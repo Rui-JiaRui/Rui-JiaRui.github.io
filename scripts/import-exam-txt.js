@@ -6,7 +6,8 @@ const path = require('node:path');
 const TYPE_CONFIG = {
   '单选': { type: 'single', prefix: 'S', score: 1 },
   '多选': { type: 'multiple', prefix: 'M', score: 2 },
-  '不定项': { type: 'indefinite', prefix: 'I', score: 2 }
+  '不定项': { type: 'indefinite', prefix: 'I', score: 2 },
+  '主观题': { type: 'subjective', prefix: 'E', score: 0 }
 };
 
 function inputError(sourceName, lineNumber, message) {
@@ -27,10 +28,11 @@ function parseExamText(text, sourceName = '<input>') {
   let current = null;
 
   const finishQuestion = (answerMatch, lineNumber) => {
-    if (current.options.length < 2) throw inputError(sourceName, current.startLine, '每题至少需要两个选项');
+    if (current.type !== 'subjective' && current.options.length < 2) throw inputError(sourceName, current.startLine, '每题至少需要两个选项');
     const analysisLines = trimBlankLines(current.analysisLines);
-    if (!analysisLines.some((line) => line.trim())) throw inputError(sourceName, lineNumber, '缺少答案解析');
-    const answer = [...answerMatch[1].toUpperCase()];
+    if (current.type !== 'subjective' && !analysisLines.some((line) => line.trim())) throw inputError(sourceName, lineNumber, '缺少答案解析');
+    const answerText = (answerMatch[1] || '').trim();
+    const answer = current.type === 'subjective' ? [] : [...answerText.toUpperCase()];
     if (new Set(answer).size !== answer.length) {
       throw inputError(sourceName, lineNumber, '答案选项重复');
     }
@@ -47,6 +49,7 @@ function parseExamText(text, sourceName = '<input>') {
       stem: current.stem,
       options: current.options,
       answer,
+      referenceAnswer: current.type === 'subjective' ? answerText : undefined,
       analysis: analysisLines.join('\n')
     });
     current = null;
@@ -76,7 +79,9 @@ function parseExamText(text, sourceName = '<input>') {
       return;
     }
 
-    const answerMatch = line.match(/^本题答案[：:]\s*([A-Za-z]+)(?:[，,]\s*(.*))?\s*$/);
+    const answerMatch = current.type === 'subjective'
+      ? line.match(/^(?:参考答案|本题答案)[：:]\s*(.+)$/)
+      : line.match(/^本题答案[：:]\s*([A-Za-z]+)(?:[，,]\s*(.*))?\s*$/);
     if (answerMatch) {
       finishQuestion(answerMatch, lineNumber);
       return;
@@ -92,8 +97,11 @@ function parseExamText(text, sourceName = '<input>') {
       return;
     }
 
-    if (current.options.length && line.trim()) current.readingAnalysis = true;
-    if (current.readingAnalysis || current.options.length) current.analysisLines.push(line);
+    if (current.type === 'subjective' && line.trim()) current.analysisLines.push(line);
+    else {
+      if (current.options.length && line.trim()) current.readingAnalysis = true;
+      if (current.readingAnalysis || current.options.length) current.analysisLines.push(line);
+    }
   });
 
   if (current) throw inputError(sourceName, current.startLine, '缺少答案行');
@@ -102,9 +110,9 @@ function parseExamText(text, sourceName = '<input>') {
 }
 
 function buildExamFiles(paperId, parsedQuestions) {
-  const counters = { single: 0, multiple: 0, indefinite: 0 };
-  const prefixes = { single: 'S', multiple: 'M', indefinite: 'I' };
-  const scores = { single: 1, multiple: 2, indefinite: 2 };
+  const counters = { single: 0, multiple: 0, indefinite: 0, subjective: 0 };
+  const prefixes = { single: 'S', multiple: 'M', indefinite: 'I', subjective: 'E' };
+  const scores = { single: 1, multiple: 2, indefinite: 2, subjective: 0 };
   const subjects = [];
   const answers = {};
   let totalScore = 0;
@@ -116,20 +124,22 @@ function buildExamFiles(paperId, parsedQuestions) {
     const score = scores[question.type];
     if (!subjects.includes(question.subject)) subjects.push(question.subject);
     totalScore += score;
-    answers[id] = { answer: [...question.answer], analysis: question.analysis };
+    answers[id] = question.type === 'subjective'
+      ? { referenceAnswer: question.referenceAnswer || '', analysis: question.analysis }
+      : { answer: [...question.answer], analysis: question.analysis };
     return {
       id,
       type: question.type,
       score,
       stem: question.stem,
-      options: question.options.map((option) => ({ ...option })),
+      ...(question.type === 'subjective' ? { maxLength: 5000 } : { options: question.options.map((option) => ({ ...option })) }),
       tags: [question.subject]
     };
   });
 
   return {
     paper: {
-      schemaVersion: '1.0',
+      schemaVersion: '1.1',
       paper: {
         id: paperId,
         title: `${paperId}错题回顾`,
@@ -141,7 +151,7 @@ function buildExamFiles(paperId, parsedQuestions) {
       },
       questions
     },
-    answerKey: { paperId, version: '1.0', answers }
+    answerKey: { paperId, version: '1.1', answers }
   };
 }
 

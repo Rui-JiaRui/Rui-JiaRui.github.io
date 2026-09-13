@@ -1,6 +1,6 @@
 {
   "paperId": "manual-2026-01",
-  "version": "1.0",
+  "version": "1.1",
   "answers": {
     "M001": {
       "answer": ["A"],
@@ -13,6 +13,10 @@
     "M003": {
       "answer": ["B"],
       "analysis": "填写不定项选择题答案解析。"
+    },
+    "E001": {
+      "referenceAnswer": "填写主观题参考答案。",
+      "analysis": "主观题仅供考生自评，不计入自动得分。"
     }
   }
 }
